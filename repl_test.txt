@@ -1,0 +1,6 @@
+(dex:get "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?location=-58.6725,-34.5875&f=json")
+
+
+(defvar *out* (dex:get "https://api.nordvpn.com/server"))
+(defvar *meh* (jonathan:parse *out* :as :hash-table))
+(remove-if-not (lambda (e) (search "ar33" (gethash "domain" e) :test #'string-equal)) *meh*)
