@@ -10,4 +10,4 @@
   (:export
    #:init))
 
-(in-package #:ftp-client)
+(in-package #:nordlocations)
