@@ -6,6 +6,8 @@
 (defvar *reverse-geocode-url* "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?location=~$,~$&f=json" "URL template to replace the lat/long values and retrieve the location data.")
 (defvar *servers-data* nil "List with server information, once it is retrieved from the location specified in `*nord-servers-url*'.")
 
+(defvar *selected-server* nil "Holds a reference to the currently selected server in `*servers-listbox*'.")
+
 (defvar *location-info-template*
   "Region:~%~a~%~%Subregion:~%~a~%~%MetroArea:~%~a~%~%City:~%~a~%"
   "Template to show the location information in `*location-label*'.")
@@ -31,6 +33,11 @@
   (format t "~a~%" *help-text*)
   (uiop:quit 0))
 
+(defun searchable-listbox-match-ignore-case (entry-text item-text)
+  "Return non-nil if ENTRY-TEXT is contained in ITEM-TEXT.
+Unlike the default match function in searchable-listbox, this one is case insensitive."
+  (search entry-text item-text :test #'char-equal))
+
 (defun start-ui ()
   "Launches the UI for nordlocations."
   (with-nodgui (:title "NordVPN - Server Locations")
@@ -38,11 +45,13 @@
     (font-configure "TkTextFont" :size 12)
     (let* ((server-label (make-instance 'label
                                         :text "Server:"))
-           (server-list (make-instance 'scrolled-listbox))
+           (server-list (make-instance 'nodgui.mw:searchable-listbox
+                                       :matching-fn #'searchable-listbox-match-ignore-case
+                                       :remove-non-matching-p t))
            (location-title-label (make-instance 'label
                                           :text "Location info:"))
            (location-info-label (make-instance 'label
-                                               :text (make-string 40 :initial-element #\Space)))
+                                               :text (make-string 80 :initial-element #\Space)))
            (fetch-servers-button (make-instance 'button
                                                 :text "Get server list"
                                                 :command #'populate-server-list-start))
@@ -79,9 +88,13 @@
 (defun populate-server-list-start ()
   "Setup the UI and then call `populate-server-list-end'."
   (listbox-delete *servers-listbox*)
-  (setf (text *operation-label*) "Retrieving the server list")
-  ;; not so subtle attempt to delay a bit the next step...
+  (setf (text *operation-label*) "Retrieving the server list"
+        (text *location-label*) "")
+  ;; noto so subtle attempt to delay a bit the next step...
   (nodgui:after 100 #'populate-server-list-end))
+
+(defun get-server-name (item)
+  (gethash "name" item))
 
 (defun populate-server-list-end ()
   "Fetch the list of servers from `*nord-servers-url*' and fill the server listbox."
@@ -89,26 +102,27 @@
                                             :as :hash-table)))
     (setf *servers-data* (sort parsed-server-data
                                #'string-lessp
-                               :key (lambda (server) (gethash "name" server))))
+                               :key #'get-server-name))
     (listbox-delete *servers-listbox*)
-    (loop for server in *servers-data*
-          do (listbox-append *servers-listbox* (gethash "name" server))))
-  (setf (text *operation-label*) "-"))
+    (listbox-append *servers-listbox* (loop for server in *servers-data*
+                                            collect (get-server-name server)))
+  (setf (text *operation-label*) "-")))
 
 (defun handle-server-selected-start (evt)
   "Setup the UI and then call `handle-server-selected-end'."
-  (let* ((item-index (first (first (listbox-get-selection *servers-listbox*))))
-         (selected-server (nth item-index *servers-data*)))
-    ;; I wonder if I can get the server name from the listbox instead...
-    (setf (text *operation-label*)
-          (format nil "Getting location data for ~a" (gethash "name" selected-server)))
+  (let* ((server-name (first (listbox-get-selection-value *servers-listbox*)))
+         (server-item (find server-name *servers-data* :key #'get-server-name :test #'string=)))
+    (setf *selected-server* server-item
+          (text *location-label*) ""
+          (text *operation-label*) (format nil
+                                           "Getting location data for ~a"
+                                           server-name))
     ;; not so subtle attempt to delay a bit the next step...
     (nodgui:after 100 #'handle-server-selected-end)))
 
 (defun handle-server-selected-end ()
   "Call the API at `*reverse-geocode-url*' for the selected server, and display the information."
-  (let* ((item-index (first (first (listbox-get-selection *servers-listbox*))))
-         (location-info (gethash "location" (nth item-index *servers-data*)))
+  (let* ((location-info (gethash "location" *selected-server*))
          (geo-data (gethash "address"
                             (jonathan:parse (dex:get (format nil *reverse-geocode-url*
                                                              (gethash "long" location-info)
