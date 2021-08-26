@@ -13,7 +13,7 @@
   :serial t
   :build-operation "program-op"
   :build-pathname "nordlocations"
-  :entry-point "nordlocations   :init"
+  :entry-point "nordlocations:init"
   :depends-on (#:alexandria
                #:uiop
                #:nodgui
