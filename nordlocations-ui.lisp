@@ -1,6 +1,7 @@
 ;;;; nordlocations.lisp
+;;; This file contains the  main UI code
 
-(in-package #:nordlocations)
+(in-package #:nordlocations-ui)
 
 (defvar *nord-servers-url* "https://api.nordvpn.com/server"
   "URL to retrieve the list of VPN servers.")
@@ -109,15 +110,13 @@ Unlike the default match function in searchable-listbox, this one is case insens
   (gethash "name" item))
 
 (defun fetch-servers-click-end ()
-  "Fetch the list of servers from `*nord-servers-url*' and fill the server listbox."
-  (let ((parsed-server-data (jonathan:parse (dex:get "https://api.nordvpn.com/server")
-                                            :as :hash-table)))
-    (setf *servers-data* (sort parsed-server-data
-                               #'string-lessp
-                               :key #'get-server-name))
-    (listbox-delete *servers-listbox*)
-    (listbox-append *servers-listbox* (loop for server in *servers-data*
-                                            collect (get-server-name server))))
+  "Fill the server listbox with the list of servers obtained using the API package."
+  (setf *servers-data* (sort (nordapi:get-nord-servers)
+                             #'string-lessp
+                             :key #'get-server-name))
+  (listbox-delete *servers-listbox*)
+  (listbox-append *servers-listbox* (loop for server in *servers-data*
+                                          collect (get-server-name server)))
   (setf (text *status-label*) "-")
   (focus (entry *servers-listbox*)))
 
@@ -135,13 +134,10 @@ Unlike the default match function in searchable-listbox, this one is case insens
     (nodgui:after 100 #'server-list-selected-end)))
 
 (defun server-list-selected-end ()
-  "Call the API at `*reverse-geocode-url*' for the selected server, and display the information."
+  "Use the coordinates of the selected server to resolve the location, and display the information."
   (let* ((location-info (gethash "location" *selected-server*))
-         (geo-data (gethash "address"
-                            (jonathan:parse (dex:get (format nil *reverse-geocode-url*
-                                                             (gethash "long" location-info)
-                                                             (gethash "lat" location-info)))
-                                            :as :hash-table))))
+         (geo-data (nordapi:get-coordinates-location (gethash "long" location-info)
+                                                     (gethash "lat" location-info))))
     (setf (text *location-label*) (format nil *location-info-template*
                                           (value-or-dash "Region" geo-data)
                                           (value-or-dash "Subregion" geo-data)

@@ -12,12 +12,13 @@
   :version "0.0.1"
   :serial t
   :build-operation "program-op"
-  :build-pathname "nordlocations"
-  :entry-point "nordlocations:init"
+  :build-pathname "nordlocations-ui"
+  :entry-point "nordlocations-ui:init"
   :depends-on (#:alexandria
                #:uiop
                #:nodgui
                #:dexador
                #:jonathan)
-  :components ((:file "package")
-               (:file "nordlocations")))
+  :components ((:file "packages")
+               (:file "nordlocations-api")
+               (:file "nordlocations-ui")))
