@@ -12,7 +12,7 @@
   :version "0.0.1"
   :serial t
   :build-operation "program-op"
-  :build-pathname "nordlocations-ui"
+  :build-pathname "nordlocations"
   :entry-point "nordlocations-ui:init"
   :depends-on (#:alexandria
                #:uiop
