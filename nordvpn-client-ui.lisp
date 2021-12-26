@@ -1,7 +1,7 @@
-;;;; nordlocations.lisp
+;;;; nordvpn-client-ui.lisp
 ;;; This file contains the  main UI code
 
-(in-package #:nordlocations-ui)
+(in-package #:nordvpn-client-ui)
 
 (defvar *nord-servers-url* "https://api.nordvpn.com/server"
   "URL to retrieve the list of VPN servers.")

@@ -1,6 +1,7 @@
-;;;; nordlocations-api.lisp
+;;;; nordvpn-api.lisp
+;;; Everything related to consuming the API lives here
 
-(in-package #:nordlocations-api)
+(in-package #:nordvpn-api)
 
 (defvar *nord-servers-url* "https://api.nordvpn.com/server"
   "URL to retrieve the list of VPN servers.")
