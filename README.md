@@ -1,6 +1,6 @@
 # NordVPN Client
 
-Small UI tool to manage NordVPN connections. Written in Common Lisp, it uses `nmcli`, and the NorVPN API (as described [in these](https://sleeplessbeastie.eu/2019/02/18/how-to-use-public-nordvpn-api/) [two posts](https://sleeplessbeastie.eu/2019/01/14/how-to-use-terminal-to-display-servers-recommended-by-nordvpn/) to either get a server by location or just connect to the "recommended" one.
+Small UI tool to manage NordVPN connections. Written in Common Lisp, it uses `nmcli`, and the NorVPN API (as [described in](https://sleeplessbeastie.eu/2019/02/18/how-to-use-public-nordvpn-api/) these [two posts](https://sleeplessbeastie.eu/2019/01/14/how-to-use-terminal-to-display-servers-recommended-by-nordvpn/) to either get a server by location or just connect to the "recommended" one.
 
 I built this because I run Fedora Silverblue, so I prefer something I can run without layering into the base OS. And also to sharpen my Common Lisp :)
 
