@@ -12,13 +12,15 @@
 
 (defun get-nord-servers ()
   "Fetch and parse the list of servers from `*nord-servers-url*'."
-  (jonathan:parse (dex:get "https://api.nordvpn.com/server")
-                  :as :hash-table))
+  ;; (jonathan:parse (dex:get "https://api.nordvpn.com/server")
+  ;;                 :as :hash-table))
+  )
 
 (defun get-coordinates-location (longitude latitude)
   "Call the API at `*reverse-geocode-url*' to resolve the location at LONGITUDE and LATITUDE."
-  (gethash "address"
-           (jonathan:parse (dex:get (format nil *reverse-geocode-url*
-                                            longitude
-                                            latitude))
-                           :as :hash-table)))
+  ;; (gethash "address"
+  ;;          (jonathan:parse (dex:get (format nil *reverse-geocode-url*
+  ;;                                           longitude
+  ;;                                           latitude))
+  ;;                          :as :hash-table)))
+  )
