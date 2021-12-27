@@ -12,9 +12,9 @@
   "Template to show the location information in `*recommended-label*'.")
 
 ;; Controls bound to global variables because they are accessed from multiple functions.
-(defvar *cities-listbox* nil "Reference to the listbox that displays countries and cities.")
-(defvar *recommended-label* nil "Reference to the label that needs to be updated with location data.")
-(defvar *status-label* nil "Reference to the label that reflects the current status.")
+(defvar *cities-listbox* nil "Listbox that displays countries and cities.")
+(defvar *recommended-label* nil "Label that will display the recommended server data.")
+(defvar *status-label* nil "Label that reflects the current status.")
 
 ;; TODO: update this text
 (defvar *help-text*
@@ -50,40 +50,43 @@ Unlike the default match function in searchable-listbox, this one is case insens
                                        :expand t
                                        :matching-fn #'searchable-listbox-match-ignore-case
                                        :remove-non-matching-p t))
-           (fetch-countries-button (make-instance 'button
-                                                  :text "Search by country"
-                                                  :command #'fetch-countries-click-start))
+           (recommended-title-label (make-instance 'label
+                                                   :width 30
+                                                   :text "Recommended server:"))
+           (recommended-info-label (make-instance 'label
+                                                  :text ""))
+           (fetch-recommended-server-button (make-instance 'button
+                                                           :state :disabled
+                                                           :text "Get recommended server"))
+                                                            ;; :command #'fetch-countries-click-start))
            (status-frame (make-instance 'labelframe
                                         :text "Status:"))
            (status-label (make-instance 'label
                                         :master status-frame
                                         :text "Press [space] or click the button to get the server list.")))
-      (setf *countries-listbox* countries-list)
-      (setf *recommnded-label* recommended-info-label)
+      (setf *cities-listbox* cities-list)
+      (setf *recommended-label* recommended-info-label)
       (setf *status-label* status-label)
       ;; make the listbox in the seachable-listbox wider and taller than the default
       (configure (listbox *cities-listbox*) :height  20)
       (configure (listbox *cities-listbox*) :width  30)
-      ;; start by setting focus  on the button to fetch the servers, so Enter triggers the action
-      (focus fetch-countries-button)
+      ;; start by setting focus on the button to fetch the servers, so Enter triggers the action
+      (focus (entry *cities-listbox*))
       ;; ;; After fetching the servers, the focus is moved to the searchable listbox entry
       ;; ;; make it so that pressing Enter in the entry moves focus to the list
       ;; (bind (entry server-list) "<Return>" #'server-list-entry-enter-key)
       ;; when the listbox selection changes, we need to update the recommended server information
       (bind (listbox cities-list) "<<ListboxSelect>>" #'cities-list-selected-start)
 
-      (grid countries-label 0 0 :padx 10 :pady 10 :sticky "w")
-      ;; (grid fetch-countries-button 0 1 :padx 10 :pady 10 :sticky "w")
-      (grid countries-list 1 0 :padx 10 :pady 10 :sticky "w" :columnspan 2)
+      (grid cities-label 0 0 :padx 10 :pady 10 :sticky "w")
+      (grid cities-list 1 0 :padx 10 :pady 10 :sticky "w" :columnspan 2)
 
-      (grid countries-label 0 0 :padx 10 :pady 10 :sticky "w")
-      ;; (grid fetch-countries-button 0 1 :padx 10 :pady 10 :sticky "w")
-      (grid countries-list 1 0 :padx 10 :pady 10 :sticky "w" :columnspan 2)
+      (grid recommended-title-label 0 2 :padx 10 :pady 10 :sticky "w")
+      (grid recommended-info-label 1 2 :padx 10 :pady 10 :sticky "w")
 
-      ;; (grid location-title-label 0 2 :padx 10 :pady 10 :sticky "w")
-      ;; (grid location-info-label 1 2 :padx 10 :pady 10 :sticky "w")
+      (grid fetch-recommended-server-button 2 0 :padx 10 :pady 10 :sticky "w")
 
-      (grid status-frame 2 0 :padx 10 :pady 10 :sticky "nswe" :columnspan 3)
+      (grid status-frame 3 0 :padx 10 :pady 10 :sticky "nswe" :columnspan 3)
       (grid status-label 0 0 :padx 10 :pady 10 :sticky "w")
 
       (grid-columnconfigure *tk* :all :weight 1)
@@ -103,9 +106,10 @@ Unlike the default match function in searchable-listbox, this one is case insens
     (listbox-append *cities-listbox* (format-countries-cities))
     (setf (text *status-label*) "")))
 
-(defun get-data-from-selected-text (text)
-  "Extract from TEXT (always? from *selected-country-city*) the country id and city name."
-  (let* (;; this logic is fickle, I tried to account for country names with "-" in ther name
+(defun get-id-and-city-from-selected-text ()
+  "Extract from `*selected-country-city*' the country id and city name."
+  (let* ((text *selected-country-city*)
+         ;; this logic is fickle, I tried to account for country names with "-" in ther name
          ;; by using two spaces before/after the - char
          (country-name (subseq text 0 (search "  -  " text)))
          (city-name (subseq text (+ 5 (search "  -  " text)))))
@@ -120,28 +124,28 @@ Unlike the default match function in searchable-listbox, this one is case insens
 (defun cities-list-selected-start (evt)
   "Setup the UI and then call `cities-list-selected-end'."
   (declare (ignore evt))
-  (setf (text *selected-country-city*) (first (listbox-get-selection-value *cities-listbox*))
-        (text *recommnded-label*) ""
-        (text *status-label*) (format nil
-                                      "Retrieving best server for \"~a\"..."
-                                      selected-text))
-  ;; Delay a bit the next step so the status label updates
-  (nodgui:after 50 #'server-list-selected-end))
+  (let ((selected-text (first (listbox-get-selection-value *cities-listbox*))))
+    (setf *selected-country-city* selected-text
+          (text *recommended-label*) ""
+          (text *status-label*) (format nil
+                                        "Retrieving best server for \"~a\"..."
+                                        selected-text))
+    ;; Delay a bit the next step so the status label updates
+    (nodgui:after 50 #'cities-list-selected-end)))
 
 (defun cities-list-selected-end ()
   "Use the information in `*selected-country-city*' to get the recommended server."
-  (multiple-value-bind (country-id city-name) (get-data-from-selected-text *selected-country-city*)))
+  (multiple-value-bind (country-id city-name) (get-id-and-city-from-selected-text)))
 
-       (location-info (gethash "location" *selected-server*))
-         (geo-data (nordapi:get-coordinates-location (gethash "long" location-info)
-                                                     (gethash "lat" location-info))))
-    (setf (text *recommnded-label*) (format nil *recommnded-info-template*
-                                          (value-or-dash "Region" geo-data)
-                                          (value-or-dash "Subregion" geo-data)
-                                          (value-or-dash "MetroArea" geo-data)
-                                          (value-or-dash "City" geo-data))))
-  (setf (text *status-label*) "-"))
-
+  ;;      (location-info (gethash "location" *selected-server*))
+  ;;        (geo-data (nordapi:get-coordinates-location (gethash "long" location-info)
+  ;;                                                    (gethash "lat" location-info))))
+  ;;   (setf (text *recommnded-label*) (format nil *recommnded-info-template*
+  ;;                                         (value-or-dash "Region" geo-data)
+  ;;                                         (value-or-dash "Subregion" geo-data)
+  ;;                                         (value-or-dash "MetroArea" geo-data)
+  ;;                                         (value-or-dash "City" geo-data))))
+  ;; (setf (text *status-label*) "-"))
 
 
 
