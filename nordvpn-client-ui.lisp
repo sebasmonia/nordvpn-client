@@ -3,27 +3,20 @@
 
 (in-package #:nordvpn-client-ui)
 
-(defvar *nord-servers-url* "https://api.nordvpn.com/server"
-  "URL to retrieve the list of VPN servers.")
+(defvar *countries-cities* nil
+  "List of countries and their cities, as reported from the NordVPN API, formatted in an alist.")
 
-(defvar *reverse-geocode-url*
-  "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?location=~$,~$&f=json"
-  "URL template to replace the lat/long values and retrieve the location data.")
+(defvar *selected-country-city* "" "The text selected in `*cities-listbox*' after clicking on it.")
 
-(defvar *servers-data* nil
-  "List with server information, once it is retrieved from the location specified in `*nord-servers-url*'.")
-
-(defvar *selected-server* nil
-  "Holds a reference to the currently selected server in `*servers-listbox*'.")
-
-(defvar *location-info-template* "Region:~%~a~3%Subregion:~%~a~3%MetroArea:~%~a~3%City:~%~a~%"
-  "Template to show the location information in `*location-label*'.")
+(defvar *recommended-info-template* "Id:~%~a~3%Name:~%~a~3%Load:~%~a~%"
+  "Template to show the location information in `*recommended-label*'.")
 
 ;; Controls bound to global variables because they are accessed from multiple functions.
-(defvar *servers-listbox* nil "Reference to the listbox that has the server list.")
-(defvar *location-label* nil "Reference to the label that needs to be updated with location data.")
+(defvar *cities-listbox* nil "Reference to the listbox that displays countries and cities.")
+(defvar *recommended-label* nil "Reference to the label that needs to be updated with location data.")
 (defvar *status-label* nil "Reference to the label that reflects the current status.")
 
+;; TODO: update this text
 (defvar *help-text*
   "Execute \"nordlocations\" to display a window to retrieve the list of NordVPN servers.
 When you select a server name, on the side you will see its location info.")
@@ -33,8 +26,6 @@ When you select a server name, on the side you will see its location info.")
   (let ((arguments (uiop:command-line-arguments)))
     (when (string= "-h" (first arguments))
       (show-help-and-exit)))
-  ;; This would be a good place to set *nord-servers-url* and
-  ;; *reverse-geocode-url* from a config file. Or something.
   (start-ui))
 
 (defun show-help-and-exit ()
@@ -49,101 +40,110 @@ Unlike the default match function in searchable-listbox, this one is case insens
 
 (defun start-ui ()
   "Launches the UI for nordlocations."
-  (with-nodgui (:title "NordVPN - Server Locations")
+  (with-nodgui (:title "NordVPN Client")
     (font-configure "TkDefaultFont" :size 12)
     (font-configure "TkTextFont" :size 12)
-    (let* ((server-label (make-instance 'label
-                                        :text "Server:"))
-           (server-list (make-instance 'nodgui.mw:searchable-listbox
+    (let* ((cities-label (make-instance 'label
+                                           :text "Countries & cities:"))
+           (cities-list (make-instance 'nodgui.mw:searchable-listbox
                                        :fill :both
                                        :expand t
                                        :matching-fn #'searchable-listbox-match-ignore-case
                                        :remove-non-matching-p t))
-           (location-title-label (make-instance 'label
-                                         :width 30
-                                         :text "Location info:"))
-           (location-info-label (make-instance 'label
-                                               :text ""))
-           (fetch-servers-button (make-instance 'button
-                                                :text "Get server list"
-                                                :command #'fetch-servers-click-start))
+           (fetch-countries-button (make-instance 'button
+                                                  :text "Search by country"
+                                                  :command #'fetch-countries-click-start))
            (status-frame (make-instance 'labelframe
                                         :text "Status:"))
            (status-label (make-instance 'label
                                         :master status-frame
                                         :text "Press [space] or click the button to get the server list.")))
-      (setf *servers-listbox* server-list)
-      (setf *location-label* location-info-label)
+      (setf *countries-listbox* countries-list)
+      (setf *recommnded-label* recommended-info-label)
       (setf *status-label* status-label)
       ;; make the listbox in the seachable-listbox wider and taller than the default
-      (configure (listbox *servers-listbox*) :height  20)
-      (configure (listbox *servers-listbox*) :width  30)
+      (configure (listbox *cities-listbox*) :height  20)
+      (configure (listbox *cities-listbox*) :width  30)
       ;; start by setting focus  on the button to fetch the servers, so Enter triggers the action
-      (focus fetch-servers-button)
-      ;; After fetching the servers, the focus is moved to the searchable listbox entry
-      ;; make it so that pressing Enter in the entry moves focus to the list
-      (bind (entry server-list) "<Return>" #'server-list-entry-enter-key)
-      ;; when the listbox selection changes, we have to fetch the data
-      (bind (listbox server-list) "<<ListboxSelect>>" #'server-list-selected-start)
+      (focus fetch-countries-button)
+      ;; ;; After fetching the servers, the focus is moved to the searchable listbox entry
+      ;; ;; make it so that pressing Enter in the entry moves focus to the list
+      ;; (bind (entry server-list) "<Return>" #'server-list-entry-enter-key)
+      ;; when the listbox selection changes, we need to update the recommended server information
+      (bind (listbox cities-list) "<<ListboxSelect>>" #'cities-list-selected-start)
 
-      (grid server-label 0 0 :padx 10 :pady 10 :sticky "w")
-      (grid fetch-servers-button 0 1 :padx 10 :pady 10 :sticky "w")
-      (grid server-list 1 0 :padx 10 :pady 10 :sticky "w" :columnspan 2)
-      (grid location-title-label 0 2 :padx 10 :pady 10 :sticky "w")
-      (grid location-info-label 1 2 :padx 10 :pady 10 :sticky "w")
+      (grid countries-label 0 0 :padx 10 :pady 10 :sticky "w")
+      ;; (grid fetch-countries-button 0 1 :padx 10 :pady 10 :sticky "w")
+      (grid countries-list 1 0 :padx 10 :pady 10 :sticky "w" :columnspan 2)
+
+      (grid countries-label 0 0 :padx 10 :pady 10 :sticky "w")
+      ;; (grid fetch-countries-button 0 1 :padx 10 :pady 10 :sticky "w")
+      (grid countries-list 1 0 :padx 10 :pady 10 :sticky "w" :columnspan 2)
+
+      ;; (grid location-title-label 0 2 :padx 10 :pady 10 :sticky "w")
+      ;; (grid location-info-label 1 2 :padx 10 :pady 10 :sticky "w")
 
       (grid status-frame 2 0 :padx 10 :pady 10 :sticky "nswe" :columnspan 3)
       (grid status-label 0 0 :padx 10 :pady 10 :sticky "w")
 
       (grid-columnconfigure *tk* :all :weight 1)
-      (grid-rowconfigure    *tk* :all :weight 1))))
+      (grid-rowconfigure    *tk* :all :weight 1)
+      (populate-cities-listbox)
+      )))
 
-(defun fetch-servers-click-start ()
-  "Setup the UI and then call `fetch-servers-click-end'."
-  (listbox-delete *servers-listbox*)
-  (setf (text *status-label*) "Retrieving the server list..."
-        (text *location-label*) "")
-  ;; noto so subtle attempt to delay a bit the next step...
-  (nodgui:after 100 #'fetch-servers-click-end))
+(defun populate-cities-listbox ()
+  "Shows the list of countries. This function is called on startup."
+  (flet ((format-countries-cities ()
+           (loop for country in *countries-cities*
+                 for name = (alexandria:assoc-value country :name)
+                 nconc (loop for city in (alexandria:assoc-value country :cities)
+                             collect (format nil "~a  -  ~a" name city)))))
+    (setf (text *status-label*) "Retrieving countries and cities...")
+    (setf *countries-cities* (nordapi:get-countries-cities))
+    (listbox-append *cities-listbox* (format-countries-cities))
+    (setf (text *status-label*) "")))
 
-(defun get-server-name (item)
-  (gethash "name" item))
+(defun get-data-from-selected-text (text)
+  "Extract from TEXT (always? from *selected-country-city*) the country id and city name."
+  (let* (;; this logic is fickle, I tried to account for country names with "-" in ther name
+         ;; by using two spaces before/after the - char
+         (country-name (subseq text 0 (search "  -  " text)))
+         (city-name (subseq text (+ 5 (search "  -  " text)))))
+    (values
+     ;; Unless something is wrong, `find-if' will always return an item, so:
+     (alexandria:assoc-value
+      (find-if (lambda (item) (string= (alexandria:assoc-value item :name) country-name))
+               *countries-cities*)
+      :name)
+     city-name)))
 
-(defun fetch-servers-click-end ()
-  "Fill the server listbox with the list of servers obtained using the API package."
-  (setf *servers-data* (sort (nordapi:get-nord-servers)
-                             #'string-lessp
-                             :key #'get-server-name))
-  (listbox-delete *servers-listbox*)
-  (listbox-append *servers-listbox* (loop for server in *servers-data*
-                                          collect (get-server-name server)))
-  (setf (text *status-label*) "-")
-  (focus (entry *servers-listbox*)))
-
-(defun server-list-selected-start (evt)
-  "Setup the UI and then call `server-list-selected-end'."
+(defun cities-list-selected-start (evt)
+  "Setup the UI and then call `cities-list-selected-end'."
   (declare (ignore evt))
-  (let* ((server-name (first (listbox-get-selection-value *servers-listbox*)))
-         (server-item (find server-name *servers-data* :key #'get-server-name :test #'string=)))
-    (setf *selected-server* server-item
-          (text *location-label*) ""
-          (text *status-label*) (format nil
-                                           "Getting location data for ~a..."
-                                           server-name))
-    ;; not so subtle attempt to delay a bit the next step...
-    (nodgui:after 100 #'server-list-selected-end)))
+  (setf (text *selected-country-city*) (first (listbox-get-selection-value *cities-listbox*))
+        (text *recommnded-label*) ""
+        (text *status-label*) (format nil
+                                      "Retrieving best server for \"~a\"..."
+                                      selected-text))
+  ;; Delay a bit the next step so the status label updates
+  (nodgui:after 50 #'server-list-selected-end))
 
-(defun server-list-selected-end ()
-  "Use the coordinates of the selected server to resolve the location, and display the information."
-  (let* ((location-info (gethash "location" *selected-server*))
+(defun cities-list-selected-end ()
+  "Use the information in `*selected-country-city*' to get the recommended server."
+  (multiple-value-bind (country-id city-name) (get-data-from-selected-text *selected-country-city*)))
+
+       (location-info (gethash "location" *selected-server*))
          (geo-data (nordapi:get-coordinates-location (gethash "long" location-info)
                                                      (gethash "lat" location-info))))
-    (setf (text *location-label*) (format nil *location-info-template*
+    (setf (text *recommnded-label*) (format nil *recommnded-info-template*
                                           (value-or-dash "Region" geo-data)
                                           (value-or-dash "Subregion" geo-data)
                                           (value-or-dash "MetroArea" geo-data)
                                           (value-or-dash "City" geo-data))))
   (setf (text *status-label*) "-"))
+
+
+
 
 (defun server-list-entry-enter-key (evt)
   "Event handle for pressing Enter focused on the search box.

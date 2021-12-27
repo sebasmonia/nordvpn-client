@@ -3,24 +3,22 @@
 
 (in-package #:nordvpn-api)
 
-(defvar *nord-servers-url* "https://api.nordvpn.com/server"
-  "URL to retrieve the list of VPN servers.")
+(defvar *nord-api-url* "https://api.nordvpn.com/v1/servers"
+  "Base URL of the NordVPN API.")
 
-(defvar *reverse-geocode-url*
-  "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?location=~$,~$&f=json"
-  "URL template to replace the lat/long values and retrieve the location data.")
+(defun get-countries-cities ()
+  "Fetch and parse the list of countries and their cities."
+  (flet ((extract-countries-cities (country-ht)
+           `((:name . ,(gethash "name" country-ht))
+             (:id . ,(gethash "id" country-ht))
+             (:cities . ,(loop for city-ht across (gethash "cities" country-ht)
+                               collect (gethash "name" city-ht))))))
+    (let ((response (dex:get (format nil "~a~a" *nord-api-url* "/countries"))))
+      (loop for parsed-node across (shasht:read-json* :stream response)
+            collect (extract-countries-cities parsed-node)))))
 
-(defun get-nord-servers ()
-  "Fetch and parse the list of servers from `*nord-servers-url*'."
-  ;; (jonathan:parse (dex:get "https://api.nordvpn.com/server")
-  ;;                 :as :hash-table))
-  )
+;; (defun json-to-lisp (string)
+;;   (shasht:read-json* :stream string))
 
-(defun get-coordinates-location (longitude latitude)
-  "Call the API at `*reverse-geocode-url*' to resolve the location at LONGITUDE and LATITUDE."
-  ;; (gethash "address"
-  ;;          (jonathan:parse (dex:get (format nil *reverse-geocode-url*
-  ;;                                           longitude
-  ;;                                           latitude))
-  ;;                          :as :hash-table)))
-  )
+;; (defun lisp-to-json (alist)
+;;   (shasht:write-json* alist :stream nil :alist-as-object t))

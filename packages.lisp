@@ -8,8 +8,7 @@
   (:import-from :shasht)
   (:import-from :dexador)
   (:export
-   #:get-nord-servers
-   #:get-coordinates-location))
+   #:get-countries-cities))
 
 (defpackage #:nordvpn-client-ui
   (:nicknames :nordui)
