@@ -50,15 +50,18 @@ Unlike the default match function in searchable-listbox, this one is case insens
                                        :expand t
                                        :matching-fn #'searchable-listbox-match-ignore-case
                                        :remove-non-matching-p t))
+           (get-recommended-local-button (make-instance 'button
+                                                        :text "Detect best local server"))
+                                                        ;;:command #'get-recommended-local-start))
            (recommended-title-label (make-instance 'label
                                                    :width 30
                                                    :text "Recommended server:"))
            (recommended-info-label (make-instance 'label
                                                   :text ""))
-           (fetch-recommended-server-button (make-instance 'button
-                                                           :state :disabled
-                                                           :text "Get recommended server"))
-                                                            ;; :command #'fetch-countries-click-start))
+           (connect-to-server-button (make-instance 'button
+                                                    :state :disabled
+                                                    :text "Connect to server"))
+                                                    ;;:command #'get-recommended-local-start))
            (status-frame (make-instance 'labelframe
                                         :text "Status:"))
            (status-label (make-instance 'label
@@ -70,8 +73,8 @@ Unlike the default match function in searchable-listbox, this one is case insens
       ;; make the listbox in the seachable-listbox wider and taller than the default
       (configure (listbox *cities-listbox*) :height  20)
       (configure (listbox *cities-listbox*) :width  30)
-      ;; start by setting focus on the button to fetch the servers, so Enter triggers the action
-      (focus (entry *cities-listbox*))
+      ;; start by setting focus on the button to get the local server, so Enter triggers the action
+      (focus get-recommended-local-button)
       ;; ;; After fetching the servers, the focus is moved to the searchable listbox entry
       ;; ;; make it so that pressing Enter in the entry moves focus to the list
       ;; (bind (entry server-list) "<Return>" #'server-list-entry-enter-key)
@@ -84,7 +87,8 @@ Unlike the default match function in searchable-listbox, this one is case insens
       (grid recommended-title-label 0 2 :padx 10 :pady 10 :sticky "w")
       (grid recommended-info-label 1 2 :padx 10 :pady 10 :sticky "w")
 
-      (grid fetch-recommended-server-button 2 0 :padx 10 :pady 10 :sticky "w")
+      (grid get-recommended-local-button 2 0 :padx 10 :pady 10 :sticky "we")
+      (grid connect-to-server-button 2 2 :padx 10 :pady 10 :sticky "we")
 
       (grid status-frame 3 0 :padx 10 :pady 10 :sticky "nswe" :columnspan 3)
       (grid status-label 0 0 :padx 10 :pady 10 :sticky "w")
@@ -156,8 +160,7 @@ Selects the first element in the listbox and changes focus to it."
   (let ((the-listbox (listbox *servers-listbox*)))
     (listbox-select the-listbox 0)
     (focus the-listbox)
-    (server-list-selected-start nil)
-    ))
+    (server-list-selected-start nil)))
 
 (defun run-program-and-exit ()
   "Run the program according to the parameters in the UI and exit."

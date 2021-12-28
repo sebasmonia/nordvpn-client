@@ -9,7 +9,8 @@
   (:import-from :dexador)
   (:export
    #:get-countries-cities
-   #:get-recommended-servers))
+   #:get-best-server-current-location
+   #:get-best-server-for-city))
 
 (defpackage #:nordvpn-client-ui
   (:nicknames :nordui)
