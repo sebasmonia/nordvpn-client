@@ -124,7 +124,7 @@ Unlike the default match function in searchable-listbox, this one is case insens
      (alexandria:assoc-value
       (find-if (lambda (item) (string= (alexandria:assoc-value item :name) country-name))
                *countries-cities*)
-      :name)
+      :id)
      city-name)))
 
 (defun cities-list-selected-start (evt)
@@ -141,17 +141,15 @@ Unlike the default match function in searchable-listbox, this one is case insens
 
 (defun cities-list-selected-end ()
   "Use the information in `*selected-country-city*' to get the recommended server."
-  (multiple-value-bind (country-id city-name) (get-id-and-city-from-selected-text)))
-
-  ;;      (location-info (gethash "location" *selected-server*))
-  ;;        (geo-data (nordapi:get-coordinates-location (gethash "long" location-info)
-  ;;                                                    (gethash "lat" location-info))))
-  ;;   (setf (text *recommnded-label*) (format nil *recommnded-info-template*
-  ;;                                         (value-or-dash "Region" geo-data)
-  ;;                                         (value-or-dash "Subregion" geo-data)
-  ;;                                         (value-or-dash "MetroArea" geo-data)
-  ;;                                         (value-or-dash "City" geo-data))))
-  ;; (setf (text *status-label*) "-"))
+  (multiple-value-bind (country-id city-name) (get-id-and-city-from-selected-text)
+    (let ((server-data (nordvpn-api:get-best-server-for-city country-id city-name)))
+      (setf (text *recommended-label*) (format nil *recommended-info-template*
+                                               (gethash "id" server-data)
+                                               (gethash "name" server-data)
+                                               (gethash "load" server-data))))
+    (setf (text *status-label*) "")
+    (configure *connect-button* :state :active)
+    (focus *connect-button*)))
 
 (defun get-recommended-local-start ()
   "Setup the UI and then call `get-recommended-local-end'."
