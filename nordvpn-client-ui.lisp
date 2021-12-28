@@ -15,6 +15,7 @@
 (defvar *cities-listbox* nil "Listbox that displays countries and cities.")
 (defvar *recommended-label* nil "Label that will display the recommended server data.")
 (defvar *status-label* nil "Label that reflects the current status.")
+(defvar *connect-button* nil "Button to connect to the server displayed in `*recommended-label*'.")
 
 ;; TODO: update this text
 (defvar *help-text*
@@ -51,17 +52,17 @@ Unlike the default match function in searchable-listbox, this one is case insens
                                        :matching-fn #'searchable-listbox-match-ignore-case
                                        :remove-non-matching-p t))
            (get-recommended-local-button (make-instance 'button
-                                                        :text "Detect best local server"))
-                                                        ;;:command #'get-recommended-local-start))
+                                                        :text "Detect best local server"
+                                                        :command #'get-recommended-local-start))
            (recommended-title-label (make-instance 'label
                                                    :width 30
                                                    :text "Recommended server:"))
            (recommended-info-label (make-instance 'label
                                                   :text ""))
            (connect-to-server-button (make-instance 'button
-                                                    :state :disabled
-                                                    :text "Connect to server"))
-                                                    ;;:command #'get-recommended-local-start))
+                                                    :state :disabled`
+                                                    :text "!!! CONNECT !!!"))
+                                                    ;; :command #'get-recommended-local-start))
            (status-frame (make-instance 'labelframe
                                         :text "Status:"))
            (status-label (make-instance 'label
@@ -70,14 +71,15 @@ Unlike the default match function in searchable-listbox, this one is case insens
       (setf *cities-listbox* cities-list)
       (setf *recommended-label* recommended-info-label)
       (setf *status-label* status-label)
+      (setf *connect-button* connect-to-server-button)
       ;; make the listbox in the seachable-listbox wider and taller than the default
       (configure (listbox *cities-listbox*) :height  20)
       (configure (listbox *cities-listbox*) :width  30)
       ;; start by setting focus on the button to get the local server, so Enter triggers the action
       (focus get-recommended-local-button)
-      ;; ;; After fetching the servers, the focus is moved to the searchable listbox entry
-      ;; ;; make it so that pressing Enter in the entry moves focus to the list
-      ;; (bind (entry server-list) "<Return>" #'server-list-entry-enter-key)
+      ;; make it so that pressing Enter in the entry is equivalent to clicking the
+      ;; first item on the list
+      (bind (entry cities-list) "<Return>" #'cities-list-entry-enter-key)
       ;; when the listbox selection changes, we need to update the recommended server information
       (bind (listbox cities-list) "<<ListboxSelect>>" #'cities-list-selected-start)
 
@@ -151,16 +153,32 @@ Unlike the default match function in searchable-listbox, this one is case insens
   ;;                                         (value-or-dash "City" geo-data))))
   ;; (setf (text *status-label*) "-"))
 
+(defun get-recommended-local-start ()
+  "Setup the UI and then call `get-recommended-local-end'."
+  (setf (text *recommended-label*) ""
+        (text *status-label*) "Retrieving best server for the current location...")
+  ;; Delay a bit the next step so the status label updates
+  (nodgui:after 50 #'get-recommended-local-end))
 
+(defun get-recommended-local-end ()
+  "Use the API to retrieve the recommended server for the current location, and display it."
+  (let ((server-data (nordapi:get-best-server-current-location)))
+    (setf (text *recommended-label*) (format nil *recommended-info-template*
+                                             (gethash "id" server-data)
+                                             (gethash "name" server-data)
+                                             (gethash "load" server-data))))
+  (setf (text *status-label*) "")
+  (configure *connect-button* :state :active)
+  (focus *connect-button*))
 
-(defun server-list-entry-enter-key (evt)
+(defun cities-list-entry-enter-key (evt)
   "Event handle for pressing Enter focused on the search box.
-Selects the first element in the listbox and changes focus to it."
+Selects the first element in the listbox and act as if it was clicked."
   (declare (ignore evt))
-  (let ((the-listbox (listbox *servers-listbox*)))
+  (let ((the-listbox (listbox *cities-listbox*)))
     (listbox-select the-listbox 0)
     (focus the-listbox)
-    (server-list-selected-start nil)))
+    (cities-list-selected-start nil)))
 
 (defun run-program-and-exit ()
   "Run the program according to the parameters in the UI and exit."
