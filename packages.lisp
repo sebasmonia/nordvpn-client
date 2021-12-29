@@ -12,6 +12,15 @@
    #:get-best-server-current-location
    #:get-best-server-for-city))
 
+(defpackage #:nmcli-wrapper
+  (:use #:common-lisp)
+  (:import-from :alexandria)
+  (:import-from :uiop)
+  (:export
+   #:*nmcli-executable*
+   #:ensure-connection
+   #:edit-connection))
+
 (defpackage #:nordvpn-client-ui
   (:nicknames :nordui)
   (:use #:common-lisp #:nodgui)

@@ -21,4 +21,10 @@
                #:shasht)
   :components ((:file "packages")
                (:file "nordvpn-api")
+               (:file "nmcli-wrapper")
                (:file "nordvpn-client-ui")))
+
+
+nmcli connection add connection.id nordvpn-openvpn-udp connection.type vpn vpn.service-type pptp vpn.data gateway=199.202.117.191
+
+https://downloads.nordcdn.com/configs/files/ovpn_legacy/servers/us9202.nordvpn.com.udp1194.ovpn

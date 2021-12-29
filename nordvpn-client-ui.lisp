@@ -7,8 +7,9 @@
   "List of countries and their cities, as reported from the NordVPN API, formatted in an alist.")
 
 (defvar *selected-country-city* "" "The text selected in `*cities-listbox*' after clicking on it.")
+(defvar *recommended-server-hostname* "" "Hostname of the currently recommended server.")
 
-(defvar *recommended-info-template* "Id:~%~a~3%Name:~%~a~3%Load:~%~a~%"
+(defvar *recommended-info-template* "Id:~%~a~3%Hostname:~%~a~3%Name:~%~a~3%Load:~%~a~%"
   "Template to show the location information in `*recommended-label*'.")
 
 ;; Controls bound to global variables because they are accessed from multiple functions.
@@ -61,8 +62,8 @@ Unlike the default match function in searchable-listbox, this one is case insens
                                                   :text ""))
            (connect-to-server-button (make-instance 'button
                                                     :state :disabled`
-                                                    :text "!!! CONNECT !!!"))
-                                                    ;; :command #'get-recommended-local-start))
+                                                    :text "!!! CONNECT !!!"
+                                                    :command #'create-and-open-connection))
            (status-frame (make-instance 'labelframe
                                         :text "Status:"))
            (status-label (make-instance 'label
@@ -142,14 +143,7 @@ Unlike the default match function in searchable-listbox, this one is case insens
 (defun cities-list-selected-end ()
   "Use the information in `*selected-country-city*' to get the recommended server."
   (multiple-value-bind (country-id city-name) (get-id-and-city-from-selected-text)
-    (let ((server-data (nordvpn-api:get-best-server-for-city country-id city-name)))
-      (setf (text *recommended-label*) (format nil *recommended-info-template*
-                                               (gethash "id" server-data)
-                                               (gethash "name" server-data)
-                                               (gethash "load" server-data))))
-    (setf (text *status-label*) "")
-    (configure *connect-button* :state :active)
-    (focus *connect-button*)))
+    (prepare-to-connect (nordvpn-api:get-best-server-for-city country-id city-name))))
 
 (defun get-recommended-local-start ()
   "Setup the UI and then call `get-recommended-local-end'."
@@ -160,11 +154,16 @@ Unlike the default match function in searchable-listbox, this one is case insens
 
 (defun get-recommended-local-end ()
   "Use the API to retrieve the recommended server for the current location, and display it."
-  (let ((server-data (nordapi:get-best-server-current-location)))
-    (setf (text *recommended-label*) (format nil *recommended-info-template*
-                                             (gethash "id" server-data)
-                                             (gethash "name" server-data)
-                                             (gethash "load" server-data))))
+  (prepare-to-connect (nordapi:get-best-server-current-location)))
+
+
+(defun prepare-to-connect (server-data)
+  (setf (text *recommended-label*) (format nil *recommended-info-template*
+                                           (gethash "id" server-data)
+                                           (gethash "hostname" server-data)
+                                           (gethash "name" server-data)
+                                           (gethash "load" server-data)))
+  (setf *recommended-server-hostname* (gethash "hostname" server-data))
   (setf (text *status-label*) "")
   (configure *connect-button* :state :active)
   (focus *connect-button*))
@@ -178,16 +177,7 @@ Selects the first element in the listbox and act as if it was clicked."
     (focus the-listbox)
     (cities-list-selected-start nil)))
 
-(defun run-program-and-exit ()
-  "Run the program according to the parameters in the UI and exit."
-  ;; (uiop:launch-program
-   ;;(format nil "toolbox run -c ~a ~a" *selected-toolbox* *command-text*))
-   ;; got this from reading the source, maybe there is a better way
-  (setf *exit-mainloop* t)
-  (uiop:quit 0))
+(defun create-and-open-connection ()
+  "Download the config file for `*recommended-server-hostname*', create the connection, connect."
 
-(defun value-or-dash (key ht)
-  (let ((value (gethash key ht)))
-    (if (= (length value) 0)
-        "-"
-        value)))
+  )
