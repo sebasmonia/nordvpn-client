@@ -1,7 +1,6 @@
 ;;;; packages.lisp
 
 (defpackage #:nordvpn-api
-  (:nicknames :nordapi)
   (:use #:common-lisp)
   (:import-from :alexandria)
   (:import-from :uiop)
@@ -10,7 +9,8 @@
   (:export
    #:get-countries-cities
    #:get-best-server-current-location
-   #:get-best-server-for-city))
+   #:get-best-server-for-city
+   #:download-openvpn-config-file))
 
 (defpackage #:nmcli-wrapper
   (:use #:common-lisp)
@@ -18,11 +18,11 @@
   (:import-from :uiop)
   (:export
    #:*nmcli-executable*
-   #:ensure-connection
+   #:*vpn-connection-name*
+   #:setup-connection
    #:edit-connection))
 
 (defpackage #:nordvpn-client-ui
-  (:nicknames :nordui)
   (:use #:common-lisp #:nodgui)
   (:import-from :alexandria)
   (:import-from :uiop)

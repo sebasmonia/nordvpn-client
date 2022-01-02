@@ -109,7 +109,7 @@ Unlike the default match function in searchable-listbox, this one is case insens
                  nconc (loop for city in (alexandria:assoc-value country :cities)
                              collect (format nil "~a  -  ~a" name city)))))
     (setf (text *status-label*) "Retrieving countries and cities...")
-    (setf *countries-cities* (nordapi:get-countries-cities))
+    (setf *countries-cities* (nordvpn-api:get-countries-cities))
     (listbox-append *cities-listbox* (format-countries-cities))
     (setf (text *status-label*) "")))
 
@@ -154,7 +154,7 @@ Unlike the default match function in searchable-listbox, this one is case insens
 
 (defun get-recommended-local-end ()
   "Use the API to retrieve the recommended server for the current location, and display it."
-  (prepare-to-connect (nordapi:get-best-server-current-location)))
+  (prepare-to-connect (nordvpn-api:get-best-server-current-location)))
 
 
 (defun prepare-to-connect (server-data)
@@ -179,5 +179,8 @@ Selects the first element in the listbox and act as if it was clicked."
 
 (defun create-and-open-connection ()
   "Download the config file for `*recommended-server-hostname*', create the connection, connect."
-
-  )
+  (let ((config-file (nordvpn-api:download-openvpn-config-file
+                      *recommended-server-hostname*
+                      nmcli-wrapper:*vpn-connection-name*)))
+    (nmcli-wrapper:setup-connection config-file)
+  ))

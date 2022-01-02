@@ -11,6 +11,10 @@
 (defvar *config-file-url-template* "https://downloads.nordcdn.com/configs/files/ovpn_legacy/servers/~a.udp1194.ovpn"
   "Template URL to download the OpenVPN configuration files, add hostname and voilà!")
 
+(defvar *temp-download-template* "/tmp/~a.ovpn"
+  "Template to download the VPN definition file.
+I should replace this with UIOP or CL-FAD temp file facilities.")
+
 (defun get-countries-cities ()
   "Fetch and parse the list of countries and their cities."
   (flet ((extract-countries-cities (country-ht)
@@ -53,7 +57,11 @@
             ;; returning the first match for CITY-NAME, which has the lowest load
             do (return a-server)))))
 
-;; (defun download-openvpn-config-file (hostname)
-;;   (dex:fetch (format nil *config-file-url-template* hostname)
-
-;;   )
+(defun download-openvpn-config-file (hostname filename)
+  (let ((download-path (format nil *temp-download-template* filename)))
+    (dex:fetch (format nil *config-file-url-template* hostname)
+               download-path
+               :if-exists :supersede)
+    ;; TODO: replace the hardcoded path with UIOP or CL-FAD
+    download-path))
+p
