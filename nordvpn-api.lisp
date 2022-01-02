@@ -57,11 +57,13 @@ I should replace this with UIOP or CL-FAD temp file facilities.")
             ;; returning the first match for CITY-NAME, which has the lowest load
             do (return a-server)))))
 
-(defun download-openvpn-config-file (hostname filename)
-  (let ((download-path (format nil *temp-download-template* filename)))
+(defun download-openvpn-config-file (hostname)
+  "Download the OpenVPN UDP file to setup a connection to HOSTNAME.
+The way this function gets a temp filename to download the ovpn file is really fickle..."
+  (let ((download-path (format nil *temp-download-template*
+                               (first (uiop:split-string hostname :separator '(#\.))))))
     (dex:fetch (format nil *config-file-url-template* hostname)
                download-path
                :if-exists :supersede)
     ;; TODO: replace the hardcoded path with UIOP or CL-FAD
     download-path))
-p

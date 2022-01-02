@@ -18,6 +18,22 @@ Included in the "binary" directory is a pre-packaged Tcl+Tk downloaded from http
 
 ## Usage [Outdated until I finish v2 :)]
 
+To be able to use the client, you need to add your NordVPN username and password to the GNOME Keyring, which is a one time only setup. The values should be stored under `nordvpn-client username` and `nordvpn-client password`.  
+One way to do it, from the terminal:
+
+```
+$ secret-tool store --label='NordVPN Username' nordvpn-client username
+Password: [type username here]
+$ secret-tool store --label='NordVPN Password' nordvpn-client password
+Password: [type password here]
+```
+If you want to verify that the values are correct, you can do this:
+```
+$ secret-tool lookup nordvpn-client username 
+```
+(or `password`, but be aware that it will be printed in plain text).  
+
+[OLD SECTION]
 Execute `nordlocations`, then click the button or press [Space] to fetch the list of servers from NordVPN. Focus moves to the search box.
 
 ![filter290](/images/filter290.png)

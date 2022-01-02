@@ -7,20 +7,21 @@
 ;; it is "flatpak-spawn --host nmcli"
 (defvar *nmcli-executable* "flatpak-spawn --host nmcli" "How to invoke nmcli.")
 
-(defvar *vpn-connection-name* "nordvpn-openvpn-udp" "Name of the connection to use for all tasks.")
+(defvar *vpn-name-prefix* "nordvpn-client-"
+  "Prefix of the connection names managed by this application.")
 
-(defun delete-connections-created-by-this-program ()
-  "Delete any other connections with the name `*vpn-connection-name*'.
-In theory, except when coding...there should be one, or none, of these connections."
+(defun delete-connections-by-name (name)
+  "Delete any other connections named \"`*vpn-connection-prefix*' + NAME\"."
   (let ((nmcli-output (uiop:run-program (format nil "~a ~a"
                                                 *nmcli-executable*
                                                 "-f name,uuid conn")
-                                        :output :string)))
+                                        :output :string))
+        (target-name (concatenate 'string *vpn-connection-name* name)))
     (loop for output-line in (uiop:split-string nmcli-output :separator '(#\Newline))
           for line-pieces = (uiop:split-string (string-trim " " output-line))
           for conn-name = (first line-pieces)
           for conn-uuid = (alexandria:lastcar line-pieces)
-          when (string= conn-name *vpn-connection-name*)
+          when (string-equal conn-name target-name)
             do (delete-connection-by-uuid conn-uuid))))
 
 (defun delete-connection-by-uuid (connection-uuid)
@@ -31,11 +32,15 @@ In theory, except when coding...there should be one, or none, of these connectio
     (declare (ignore stdout stderr))
     exit-code))
 
-(defun setup-connection (path)
-  "Creates a connection, using the file in PATH."
-  ;; If the connection is up, it is delete anyway, so:
-  (delete-connections-created-by-this-program)
-  ;; nmcli connection import --temporary type openvpn file "/tmp/nordvpn-openvpn-udp.ovpn"
+(defun setup-connection (connection-name config-file)
+  "Use nmcli to create CONNECTION-NAME, by importing CONFIG-FILE and setting the user and pass."
+  (delete-connections-by-name connection-name)
+  ;; (import-connection )
+  ;; ;; nmcli connection import --temporary type openvpn file "/tmp/nordvpn-openvpn-udp.ovpn"
+  ;; ;; $ nmcli con mod nordvpn-openvpn-udp vpn.secrets "password=$(secret-tool lookup nordvpn-client password)"
+  ;; ;; $ nmcli con mod nordvpn-openvpn-udp +vpn.data "username=$(secret-tool lookup nordvpn-client username)"
+  ;; ;; $ nmcli con up nordvpn-openvpn-udp
+
   )
 
 (defun edit-connection ()

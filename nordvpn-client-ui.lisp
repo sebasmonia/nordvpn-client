@@ -7,7 +7,7 @@
   "List of countries and their cities, as reported from the NordVPN API, formatted in an alist.")
 
 (defvar *selected-country-city* "" "The text selected in `*cities-listbox*' after clicking on it.")
-(defvar *recommended-server-hostname* "" "Hostname of the currently recommended server.")
+(defvar *recommended-server-data "" "Data of the currently recommended server.")
 
 (defvar *recommended-info-template* "Id:~%~a~3%Hostname:~%~a~3%Name:~%~a~3%Load:~%~a~%"
   "Template to show the location information in `*recommended-label*'.")
@@ -158,12 +158,12 @@ Unlike the default match function in searchable-listbox, this one is case insens
 
 
 (defun prepare-to-connect (server-data)
+  (setf *recommended-server-data* server-data)
   (setf (text *recommended-label*) (format nil *recommended-info-template*
                                            (gethash "id" server-data)
                                            (gethash "hostname" server-data)
                                            (gethash "name" server-data)
                                            (gethash "load" server-data)))
-  (setf *recommended-server-hostname* (gethash "hostname" server-data))
   (setf (text *status-label*) "")
   (configure *connect-button* :state :active)
   (focus *connect-button*))
@@ -178,9 +178,10 @@ Selects the first element in the listbox and act as if it was clicked."
     (cities-list-selected-start nil)))
 
 (defun create-and-open-connection ()
-  "Download the config file for `*recommended-server-hostname*', create the connection, connect."
+  "Download the config file for `*recommended-server-data*', create the connection, connect."
   (let ((config-file (nordvpn-api:download-openvpn-config-file
-                      *recommended-server-hostname*
-                      nmcli-wrapper:*vpn-connection-name*)))
-    (nmcli-wrapper:setup-connection config-file)
+                      (gethash "hostname" *recommended-server-data*)))
+        (conn-name (first (uiop:split-string hostname :separator '(#\.)))))
+    (nmcli-wrapper:setup-connection config-file conn-name)
+
   ))
