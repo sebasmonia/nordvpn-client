@@ -18,9 +18,8 @@
   (:import-from :uiop)
   (:export
    #:*nmcli-executable*
-   #:*vpn-connection-name*
-   #:setup-connection
-   #:edit-connection))
+   #:create-connection
+   #:open-connection))
 
 (defpackage #:nordvpn-client-ui
   (:use #:common-lisp #:nodgui)

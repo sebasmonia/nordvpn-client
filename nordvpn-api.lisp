@@ -11,7 +11,7 @@
 (defvar *config-file-url-template* "https://downloads.nordcdn.com/configs/files/ovpn_legacy/servers/~a.udp1194.ovpn"
   "Template URL to download the OpenVPN configuration files, add hostname and voilà!")
 
-(defvar *temp-download-template* "/tmp/~a.ovpn"
+(defvar *temp-download-template* "/tmp/nordvpn-client-~a.ovpn"
   "Template to download the VPN definition file.
 I should replace this with UIOP or CL-FAD temp file facilities.")
 

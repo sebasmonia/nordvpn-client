@@ -178,10 +178,36 @@ Selects the first element in the listbox and act as if it was clicked."
     (cities-list-selected-start nil)))
 
 (defun create-and-open-connection ()
-  "Download the config file for `*recommended-server-data*', create the connection, connect."
-  (let ((config-file (nordvpn-api:download-openvpn-config-file
-                      (gethash "hostname" *recommended-server-data*)))
-        (conn-name (first (uiop:split-string hostname :separator '(#\.)))))
-    (nmcli-wrapper:setup-connection config-file conn-name)
+  "Kick off the process of connecting to the server in `*recommended-server-data*'.
+In order to keep updating the UI, this function kick off a 3 step chain."
+  (let ((hostname (gethash "hostname" *recommended-server-data*)))
+    (setf (text *status-label*) (format nil "Downloading configuration file for ~a" hostname))
+    (configure *connect-button* :state :disabled)
+    (nodgui:after 50 (lambda () (step-1-download-ovpn-file hostname)))))
 
-  ))
+(defun step-1-download-ovpn-file (hostname)
+  "Download the ovpn file for HOSTNAME and setup the next step (create the connection)"
+  (let ((config-filename (nordvpn-api:download-openvpn-config-file hostname)))
+    (setf (text *status-label*) "Creating connection in Network Manager...")
+    (nodgui:after 50 (lambda () (step-2-create-connection config-filename)))))
+
+(defun step-2-create-connection (config-filename)
+  "Import in NM the connection in CONFIG-FILENAME, setup the \"connect\" step."
+  (multiple-value-bind (message nm-connection-name) (nmcli-wrapper:create-connection
+                                                     config-filename)
+    (if message
+        (progn
+          (setf (text *status-label*) message)
+          (configure *connect-button* :state :active))
+        (progn
+          (setf (text *status-label*) (format nil "Connecting to server ~a..." nm-connection-name))
+          (nodgui:after 50 (lambda () (step-3-create-connection nm-connection-name)))))))
+
+(defun step-3-create-connection (nm-connection-name)
+  "Open NM-CONNECTION-NAME and get the UI back to its original state."
+  (let ((message (nmcli-wrapper:open-connection nm-connection-name)))
+    (setf (text *status-label*) (or message (format nil "Connected to ~a!" nm-connection-name)))
+    (configure *connect-button* :state :active)
+    ;; clear the message after 5 seconds - unless it was an error
+    (unless message
+      (nodgui:after 5000 (lambda () (setf (text *status-label*) ""))))))
