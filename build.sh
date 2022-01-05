@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-sbcl --eval "(ql:quickload :nordlocations)" --eval "(asdf:make :nordlocations)"
+sbcl --eval "(ql:quickload :nordvpn-client)" --eval "(asdf:make :nordvpn-client)"

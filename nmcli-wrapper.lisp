@@ -5,7 +5,7 @@
 
 ;; This should be "nmcli", except when developing inside a toolbx container, then
 ;; it is "flatpak-spawn --host nmcli"
-(defvar *nmcli-executable* "flatpak-spawn --host nmcli" "How to invoke nmcli.")
+(defvar *nmcli-executable* "nmcli" "How to invoke nmcli.")
 
 (defun connection-name-for-file (path)
   "Determines the Network Manager connection name for the file at PATH."

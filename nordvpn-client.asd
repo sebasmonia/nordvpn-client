@@ -13,7 +13,7 @@
   :serial t
   :build-operation "program-op"
   :build-pathname "nordvpn-client"
-  :entry-point "nordvpn-client:init"
+  :entry-point "nordvpn-client-ui:init"
   :depends-on (#:alexandria
                #:uiop
                #:nodgui
@@ -23,8 +23,3 @@
                (:file "nordvpn-api")
                (:file "nmcli-wrapper")
                (:file "nordvpn-client-ui")))
-
-
-;; nmcli connection add connection.id nordvpn-openvpn-udp connection.type vpn vpn.service-type pptp vpn.data gateway=199.202.117.191
-
-;; https://downloads.nordcdn.com/configs/files/ovpn_legacy/servers/us9202.nordvpn.com.udp1194.ovpn

@@ -18,22 +18,28 @@
 (defvar *status-label* nil "Label that reflects the current status.")
 (defvar *connect-button* nil "Button to connect to the server displayed in `*recommended-label*'.")
 
-;; TODO: update this text
 (defvar *help-text*
-  "Execute \"nordlocations\" to display a window to retrieve the list of NordVPN servers.
-When you select a server name, on the side you will see its location info.")
+  "Execute \"nordvpn-client\" to display a window that allows finding a city to
+connect to, or the best \"local\" server, and then create & open the VPN
+connection in Network Manager.
+
+For this to work, you need to setup in your keyring proper values for
+\"nordvpn-client username\" and \"nordvpn-client password\".
+
+This tool was created an an exercise to practice Common Lisp, and also as a
+convenience in Fedora Silverblue, where installing the official NordVPN rpm
+needs \"layering\".
+Visit https://github.com/sebasmonia/nordvpn-client for more information.
+
+")
 
 (defun init ()
-  "Start the UI, show the help text if needed"
+  "Start the UI, or show the help text if needed."
   (let ((arguments (uiop:command-line-arguments)))
     (when (string= "-h" (first arguments))
-      (show-help-and-exit)))
-  (start-ui))
-
-(defun show-help-and-exit ()
-  "Display `*help-text' and return a success exit code."
-  (format t *help-text*)
-  (uiop:quit 0))
+        (format t *help-text*)
+        (uiop:quit 0))
+  (start-ui)))
 
 (defun searchable-listbox-match-ignore-case (entry-text item-text)
   "Return non-nil if ENTRY-TEXT is contained in ITEM-TEXT.
@@ -41,17 +47,17 @@ Unlike the default match function in searchable-listbox, this one is case insens
   (search entry-text item-text :test #'char-equal))
 
 (defun start-ui ()
-  "Launches the UI for nordlocations."
-  (with-nodgui (:title "NordVPN Client")
+  "Launches the UI for nordvpn-client, and sets up the call to `populate-cities-listbox'."
+  (with-nodgui (:title "NordVPN (unofficial) Client")
     (font-configure "TkDefaultFont" :size 12)
     (font-configure "TkTextFont" :size 12)
     (let* ((cities-label (make-instance 'label
                                            :text "Countries & cities:"))
-           (cities-list (make-instance 'nodgui.mw:searchable-listbox
-                                       :fill :both
-                                       :expand t
-                                       :matching-fn #'searchable-listbox-match-ignore-case
-                                       :remove-non-matching-p t))
+           (cities-listbox (make-instance 'nodgui.mw:searchable-listbox
+                                          :fill :both
+                                          :expand t
+                                          :matching-fn #'searchable-listbox-match-ignore-case
+                                          :remove-non-matching-p t))
            (get-recommended-local-button (make-instance 'button
                                                         :text "Detect best local server"
                                                         :command #'get-recommended-local-start))
@@ -61,31 +67,28 @@ Unlike the default match function in searchable-listbox, this one is case insens
            (recommended-info-label (make-instance 'label
                                                   :text ""))
            (connect-to-server-button (make-instance 'button
-                                                    :state :disabled`
+                                                    :state :disabled
                                                     :text "!!! CONNECT !!!"
                                                     :command #'create-and-open-connection))
            (status-frame (make-instance 'labelframe
                                         :text "Status:"))
            (status-label (make-instance 'label
                                         :master status-frame
-                                        :text "Press [space] or click the button to get the server list.")))
-      (setf *cities-listbox* cities-list)
-      (setf *recommended-label* recommended-info-label)
-      (setf *status-label* status-label)
-      (setf *connect-button* connect-to-server-button)
+                                        :text "")))
       ;; make the listbox in the seachable-listbox wider and taller than the default
-      (configure (listbox *cities-listbox*) :height  20)
-      (configure (listbox *cities-listbox*) :width  30)
-      ;; start by setting focus on the button to get the local server, so Enter triggers the action
+      (configure (listbox cities-listbox) :height  20)
+      (configure (listbox cities-listbox) :width  30)
+      ;; start by setting focus on the button to get the local server, so hitting the
+      ;; spacebar triggers it
       (focus get-recommended-local-button)
-      ;; make it so that pressing Enter in the entry is equivalent to clicking the
-      ;; first item on the list
-      (bind (entry cities-list) "<Return>" #'cities-list-entry-enter-key)
+      ;; make it so that pressing Enter in the entry is equivalent to clicking
+      ;; the first item on the list
+      (bind (entry cities-listbox) "<Return>" #'cities-listbox-entry-enter-key)
       ;; when the listbox selection changes, we need to update the recommended server information
-      (bind (listbox cities-list) "<<ListboxSelect>>" #'cities-list-selected-start)
+      (bind (listbox cities-listbox) "<<ListboxSelect>>" #'cities-listbox-selected-start)
 
       (grid cities-label 0 0 :padx 10 :pady 10 :sticky "w")
-      (grid cities-list 1 0 :padx 10 :pady 10 :sticky "w" :columnspan 2)
+      (grid cities-listbox 1 0 :padx 10 :pady 10 :sticky "w" :columnspan 2)
 
       (grid recommended-title-label 0 2 :padx 10 :pady 10 :sticky "w")
       (grid recommended-info-label 1 2 :padx 10 :pady 10 :sticky "w")
@@ -94,56 +97,56 @@ Unlike the default match function in searchable-listbox, this one is case insens
       (grid connect-to-server-button 2 2 :padx 10 :pady 10 :sticky "we")
 
       (grid status-frame 3 0 :padx 10 :pady 10 :sticky "nswe" :columnspan 3)
+      ;; The status label is on 0,0 but _inside the frame_
       (grid status-label 0 0 :padx 10 :pady 10 :sticky "w")
 
       (grid-columnconfigure *tk* :all :weight 1)
       (grid-rowconfigure    *tk* :all :weight 1)
-      (populate-cities-listbox)
-      )))
+
+      ;; Keep a reference to some of the controls, as we will need to access them globally
+      (setf *cities-listbox* cities-listbox)
+      (setf *recommended-label* recommended-info-label)
+      (setf *status-label* status-label)
+      (setf *connect-button* connect-to-server-button)
+
+      (setf (text status-label) "Retrieving countries and cities...")
+      (nodgui:after 50 #'populate-cities-listbox))))
 
 (defun populate-cities-listbox ()
-  "Shows the list of countries. This function is called on startup."
+  "Shows the list of countries. This function is called right after initializing the UI."
   (flet ((format-countries-cities ()
            (loop for country in *countries-cities*
                  for name = (alexandria:assoc-value country :name)
                  nconc (loop for city in (alexandria:assoc-value country :cities)
                              collect (format nil "~a  -  ~a" name city)))))
-    (setf (text *status-label*) "Retrieving countries and cities...")
     (setf *countries-cities* (nordvpn-api:get-countries-cities))
     (listbox-append *cities-listbox* (format-countries-cities))
     (setf (text *status-label*) "")))
 
-(defun get-id-and-city-from-selected-text ()
-  "Extract from `*selected-country-city*' the country id and city name."
-  (let* ((text *selected-country-city*)
-         ;; this logic is fickle, I tried to account for country names with "-" in ther name
-         ;; by using two spaces before/after the - char
-         (country-name (subseq text 0 (search "  -  " text)))
-         (city-name (subseq text (+ 5 (search "  -  " text)))))
-    (values
-     ;; Unless something is wrong, `find-if' will always return an item, so:
-     (alexandria:assoc-value
-      (find-if (lambda (item) (string= (alexandria:assoc-value item :name) country-name))
-               *countries-cities*)
-      :id)
-     city-name)))
-
-(defun cities-list-selected-start (evt)
-  "Setup the UI and then call `cities-list-selected-end'."
+(defun cities-listbox-selected-start (evt)
+  "Setup the UI and then call `cities-listbox-selected-end'."
   (declare (ignore evt))
   (let ((selected-text (first (listbox-get-selection-value *cities-listbox*))))
-    (setf *selected-country-city* selected-text
-          (text *recommended-label*) ""
+    (setf (text *recommended-label*) ""
           (text *status-label*) (format nil
                                         "Retrieving best server for \"~a\"..."
                                         selected-text))
     ;; Delay a bit the next step so the status label updates
-    (nodgui:after 50 #'cities-list-selected-end)))
+    (nodgui:after 50 (lambda () (cities-listbox-selected-end selected-text)))))
 
-(defun cities-list-selected-end ()
-  "Use the information in `*selected-country-city*' to get the recommended server."
-  (multiple-value-bind (country-id city-name) (get-id-and-city-from-selected-text)
-    (prepare-to-connect (nordvpn-api:get-best-server-for-city country-id city-name))))
+(defun cities-listbox-selected-end (selected-text)
+  "Use the information in SELECTED-TEXT to get the recommended server."
+  (flet ((find-country-node-by-name (name)
+           ;; Unless something is very wrong, `find-if' will always return an item, so:
+           (find-if (lambda (item)
+                      (string= (alexandria:assoc-value item :name) name))
+                    *countries-cities*)))
+  ;; this logic is fickle, I tried to account for country names with "-" in ther name
+  ;; by using two spaces before/after the - char
+  (let* ((country-name (subseq selected-text 0 (search "  -  " selected-text)))
+         (city-name (subseq selected-text (+ 5 (search "  -  " selected-text))))
+         (country-id (alexandria:assoc-value (find-country-node-by-name country-name) :id)))
+    (prepare-to-connect (nordvpn-api:get-best-server-for-city country-id city-name)))))
 
 (defun get-recommended-local-start ()
   "Setup the UI and then call `get-recommended-local-end'."
@@ -156,8 +159,8 @@ Unlike the default match function in searchable-listbox, this one is case insens
   "Use the API to retrieve the recommended server for the current location, and display it."
   (prepare-to-connect (nordvpn-api:get-best-server-current-location)))
 
-
 (defun prepare-to-connect (server-data)
+  "Store SERVER-DATA in `*recommended-server-data', and also display it in `*recommended-label*'."
   (setf *recommended-server-data* server-data)
   (setf (text *recommended-label*) (format nil *recommended-info-template*
                                            (gethash "id" server-data)
@@ -168,25 +171,25 @@ Unlike the default match function in searchable-listbox, this one is case insens
   (configure *connect-button* :state :active)
   (focus *connect-button*))
 
-(defun cities-list-entry-enter-key (evt)
-  "Event handle for pressing Enter focused on the search box.
+(defun cities-listbox-entry-enter-key (evt)
+  "Event handler for pressing Enter focused on the search box.
 Selects the first element in the listbox and act as if it was clicked."
   (declare (ignore evt))
   (let ((the-listbox (listbox *cities-listbox*)))
     (listbox-select the-listbox 0)
     (focus the-listbox)
-    (cities-list-selected-start nil)))
+    (cities-listbox-selected-start nil)))
 
 (defun create-and-open-connection ()
-  "Kick off the process of connecting to the server in `*recommended-server-data*'.
-In order to keep updating the UI, this function kick off a 3 step chain."
+  "Start the process of connecting to the server in `*recommended-server-data*'.
+In order to keep updating the UI, this function kicks off a 3 step chain."
   (let ((hostname (gethash "hostname" *recommended-server-data*)))
     (setf (text *status-label*) (format nil "Downloading configuration file for ~a" hostname))
     (configure *connect-button* :state :disabled)
     (nodgui:after 50 (lambda () (step-1-download-ovpn-file hostname)))))
 
 (defun step-1-download-ovpn-file (hostname)
-  "Download the ovpn file for HOSTNAME and setup the next step (create the connection)"
+  "Download the ovpn file for HOSTNAME and call step 2 (create the connection)"
   (let ((config-filename (nordvpn-api:download-openvpn-config-file hostname)))
     (setf (text *status-label*) "Creating connection in Network Manager...")
     (nodgui:after 50 (lambda () (step-2-create-connection config-filename)))))
@@ -207,7 +210,7 @@ In order to keep updating the UI, this function kick off a 3 step chain."
   "Open NM-CONNECTION-NAME and get the UI back to its original state."
   (let ((message (nmcli-wrapper:open-connection nm-connection-name)))
     (setf (text *status-label*) (or message (format nil "Connected to ~a!" nm-connection-name)))
-    (configure *connect-button* :state :active)
+    (configure *connect-button* :state :disabled)
     ;; clear the message after 5 seconds - unless it was an error
     (unless message
       (nodgui:after 5000 (lambda () (setf (text *status-label*) ""))))))
