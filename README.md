@@ -10,13 +10,13 @@ I built this because I run Fedora Silverblue, so I prefer something I can run wi
 * [dexador](https://github.com/fukamachi/dexador) for web requests
 * [shasht](https://github.com/yitzchak/shasht) to parse JSON
 
-## Installation [Outdated until I finish v2 :)]
+## Installation
 
 You can compile your own version with the included `build.sh` script. You need SBCL with Quicklisp, and also Tcl and Tk.
 
-Included in the "binary" directory is a pre-packaged Tcl+Tk downloaded from http://kitcreator.rkeene.org/kitcreator (the executable renamed from `tclkit` to `wish`) and `nordlocations` that should work on Linux x64. You can drop both files to `~/.local/bin` and then run `nordlocations`.
+Included in the "binary" directory is a pre-packaged Tcl+Tk downloaded from http://kitcreator.rkeene.org/kitcreator (the executable renamed from `tclkit` to `wish`) and `nordvpn-client` that should work on Linux x64. You can drop both files to `~/.local/bin` and then run `nordvpn-client`.
 
-## Usage [Outdated until I finish v2 :)]
+## Usage
 
 To be able to use the client, you need to add your NordVPN username and password to the GNOME Keyring, which is a one time only setup. The values should be stored under `nordvpn-client username` and `nordvpn-client password`.  
 One way to do it, from the terminal:
@@ -31,14 +31,27 @@ If you want to verify that the values are correct, you can do this:
 ```
 $ secret-tool lookup nordvpn-client username 
 ```
-(or `password`, but be aware that it will be printed in plain text).  
+or lookup `password`, but be aware that the values are echoed back in plain text.  
 
-[OLD SECTION]
-Execute `nordlocations`, then click the button or press [Space] to fetch the list of servers from NordVPN. Focus moves to the search box.
+After that one-time setup, execute `nordvpn-client`. Things should hopefully be somewhat obvious, but just in case:
 
-![filter290](/images/filter290.png)
+![window](/images/window.png)
 
-Pressing [Enter] moves focus to the list to navigate with the keyboard, you can also use the mouse to click any server and see where it is located.
+When the application starts, the focus will be in the "Detect best local server" (1) button, press the spacebar or click it to display the information reported by the NordVPN API for "closest server with lowest load".  
+Alternatively, you can use the listbox (2) to search for a country and city, and by clicking the item you would similarly get the information for the best available server. In the screenshot I clicked "Argentina  -  Buenos Aires" and
+the "Recommended server" section has what the API returned as lowest load for that city.  
+The "CONNECT" (3) button is grayed out until there's a server recommendation. Then it is enabled and when clicking it:  
+1. The ovpn config file for the server is downloaded from Nord  
+2. The connection is imported into Network Manager (using `--temporary`) and the credentials are set using the information in the keyring  
+3. Finally, the newly created VPN is opened  
 
-![showlocation](/images/showlocation.png)
+The last two steps are done using `nmcli`.  
+Since almost every action in the UI is blocking, there's a Status at the bottom (4) that displays information on what's happening (getting data from the API, downloading the ovpn file, etc.)  
 
+## Possible improvements
+
+I don't expect to make any changes to this application, but if there were more users, some good ideas:  
+
+* Make the keys used to retrieve user/pass configurable
+* Support connecting to the other servers, not only the "best" one
+* Pool `nmcli` (or via D-Bus I guess?) to keep the "Status" after connecting updated. Right now after the little lock icon is in the notification area, this tool is useless :)
