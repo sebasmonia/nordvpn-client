@@ -4,6 +4,18 @@ Small UI tool to manage NordVPN connections. Written in Common Lisp, it uses `nm
 
 I built this because I run Fedora Silverblue, so I prefer something I can run without layering into the base OS. And also to sharpen my Common Lisp :)
 
+## Table of contents
+
+<!--ts-->
+
+   * [Dependencies](#dependencies)
+   * [Installation](#installation)
+   * [First time setup](#first-time-setup)
+   * [Using the application](#using-the-application)
+   * [Future improvements](#future-improvements)
+
+<!--te-->
+
 ## Dependencies
 
 * [nodgui](https://www.autistici.org/interzona/nodgui.html) to build the UI using Tk
@@ -57,7 +69,7 @@ The "CONNECT" (3) button is grayed out until there's a server recommendation. Th
 The last two steps are done using `nmcli`. The connection is imported using `--temporary` so that it is discarded after each restart, although in my experience they do linger between reboots.  
 Since almost every action in the UI is blocking, there's a Status at the bottom (4) that displays information on what's happening (getting data from the API, downloading the ovpn file, etc.)  
 
-## Possible improvements
+## Future improvements
 
 I don't expect to make any changes to this application, but if there were more users, some good ideas:  
 
