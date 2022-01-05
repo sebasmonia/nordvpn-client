@@ -1,6 +1,6 @@
 # NordVPN Client
 
-Small UI tool to manage NordVPN connections. Written in Common Lisp, it uses `nmcli`, and the NorVPN API (as [described in](https://sleeplessbeastie.eu/2019/02/18/how-to-use-public-nordvpn-api/) these [two posts](https://sleeplessbeastie.eu/2019/01/14/how-to-use-terminal-to-display-servers-recommended-by-nordvpn/) and with some more details form [this tool](https://github.com/trishmapow/nordvpn-tools)) to either get a server by country/city or the default recommended for your current location.
+Small UI tool to manage NordVPN connections. Written in Common Lisp, it uses `nmcli`, and the NordVPN API (as [described in](https://sleeplessbeastie.eu/2019/02/18/how-to-use-public-nordvpn-api/) these [two posts](https://sleeplessbeastie.eu/2019/01/14/how-to-use-terminal-to-display-servers-recommended-by-nordvpn/) and with some more details form [this tool](https://github.com/trishmapow/nordvpn-tools)) to either get a server by country/city or the default recommended for your current location.
 
 I built this because I run Fedora Silverblue, so I prefer something I can run without layering into the base OS. And also to sharpen my Common Lisp :)
 
@@ -12,11 +12,18 @@ I built this because I run Fedora Silverblue, so I prefer something I can run wi
 
 ## Installation
 
-You can compile your own version with the included `build.sh` script. You need SBCL with Quicklisp, and also Tcl and Tk.
+You can compile your own version with the included `build.sh` script. You need SBCL with Quicklisp, and also Tcl and Tk.  
+&nbsp;  
+Included in the "binary" directory is a pre-packaged Tcl+Tk downloaded from http://kitcreator.rkeene.org/kitcreator (the executable renamed from `tclkit` to `wish`) and `nordvpn-client` that should work on Linux x64, and definitely works if you use Fedora Silverblue.  
+Drop both files to `~/.local/bin` and then run `nordvpn-client` from the terminal.
 
-Included in the "binary" directory is a pre-packaged Tcl+Tk downloaded from http://kitcreator.rkeene.org/kitcreator (the executable renamed from `tclkit` to `wish`) and `nordvpn-client` that should work on Linux x64. You can drop both files to `~/.local/bin` and then run `nordvpn-client`.
+If you wish to autostart the application, you should copy `NordVPN Client.desktop` from the "launcher" directory to your `~/.config/autostart` directory, and then edit the line:
+```
+Exec=/home/{user goes here}/.local/bin/nordvpn-client
+```
+for your particular user.  
 
-## Usage
+## First time setup
 
 To be able to use the client, you need to add your NordVPN username and password to the GNOME Keyring, which is a one time only setup. The values should be stored under `nordvpn-client username` and `nordvpn-client password`.  
 One way to do it, from the terminal:
@@ -33,7 +40,9 @@ $ secret-tool lookup nordvpn-client username
 ```
 or lookup `password`, but be aware that the values are echoed back in plain text.  
 
-After that one-time setup, execute `nordvpn-client`. Things should hopefully be somewhat obvious, but just in case:
+## Using the application
+
+You are now ready to execute `nordvpn-client`. What to do next should be, hopefully, somewhat obvious. But just in case:
 
 ![window](/images/window.png)
 
@@ -42,10 +51,10 @@ Alternatively, you can use the listbox (2) to search for a country and city, and
 the "Recommended server" section has what the API returned as lowest load for that city.  
 The "CONNECT" (3) button is grayed out until there's a server recommendation. Then it is enabled and when clicking it:  
 1. The ovpn config file for the server is downloaded from Nord  
-2. The connection is imported into Network Manager (using `--temporary`) and the credentials are set using the information in the keyring  
-3. Finally, the newly created VPN is opened  
+2. The connection is imported into Network Manager and the credentials are set using the information in the keyring  
+3. Finally, we connect to the the newly created VPN  
 
-The last two steps are done using `nmcli`.  
+The last two steps are done using `nmcli`. The connection is imported using `--temporary` so that it is discarded after each restart, although in my experience they do linger between reboots.  
 Since almost every action in the UI is blocking, there's a Status at the bottom (4) that displays information on what's happening (getting data from the API, downloading the ovpn file, etc.)  
 
 ## Possible improvements
@@ -53,5 +62,5 @@ Since almost every action in the UI is blocking, there's a Status at the bottom 
 I don't expect to make any changes to this application, but if there were more users, some good ideas:  
 
 * Make the keys used to retrieve user/pass configurable
-* Support connecting to the other servers, not only the "best" one
-* Pool `nmcli` (or via D-Bus I guess?) to keep the "Status" after connecting updated. Right now after the little lock icon is in the notification area, this tool is useless :)
+* Support connecting to the other servers for each location, not only the "best" one
+* Pool `nmcli` (or receive notifications via D-Bus I guess?) to show real-time "Status" after connecting

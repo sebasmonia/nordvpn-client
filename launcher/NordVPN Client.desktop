@@ -1,0 +1,9 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Name=NordVPN Client
+Comment=Unofficial GUI to connect to NordVPN servers
+Exec=/home/{user goes here}/.local/bin/nordvpn-client
+Terminal=false
+Type=Application
+X-GNOME-Autostart-enabled=true
