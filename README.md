@@ -19,7 +19,7 @@ I built this because I run Fedora Silverblue, so I prefer something I can run wi
 ## Dependencies
 
 * [nodgui](https://www.autistici.org/interzona/nodgui.html) to build the UI using Tk
-* [dexador](https://github.com/fukamachi/dexador) for web requests
+* [drakma](https://edicl.github.io/drakma/) for web requests
 * [shasht](https://github.com/yitzchak/shasht) to parse JSON
 
 ## Installation

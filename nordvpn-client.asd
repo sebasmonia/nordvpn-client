@@ -17,7 +17,7 @@
   :depends-on (#:alexandria
                #:uiop
                #:nodgui
-               #:dexador
+               #:drakma
                #:shasht)
   :components ((:file "packages")
                (:file "nordvpn-api")

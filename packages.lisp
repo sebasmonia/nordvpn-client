@@ -5,7 +5,7 @@
   (:import-from :alexandria)
   (:import-from :uiop)
   (:import-from :shasht)
-  (:import-from :dexador)
+  (:import-from :drakma)
   (:export
    #:get-countries-cities
    #:get-best-server-current-location
