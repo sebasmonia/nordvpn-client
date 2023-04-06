@@ -21,6 +21,7 @@ I built this because I run Fedora Silverblue, so I prefer something I can run wi
 * [nodgui](https://www.autistici.org/interzona/nodgui.html) to build the UI using Tk
 * [drakma](https://edicl.github.io/drakma/) for web requests
 * [shasht](https://github.com/yitzchak/shasht) to parse JSON
+* [deploy](https://github.com/Shinmera/deploy) to generate the binary with dependencies
 
 ## Installation
 
