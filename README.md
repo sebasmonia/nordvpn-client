@@ -70,6 +70,8 @@ The "CONNECT" (3) button is grayed out until there's a server recommendation. Th
 The last two steps are done using `nmcli`. The connection is imported using `--temporary` so that it is discarded after each restart, although in my experience they do linger between reboots.  
 Since almost every action in the UI is blocking, there's a Status at the bottom (4) that displays information on what's happening (getting data from the API, downloading the ovpn file, etc.)  
 
+If would like to automatically connect to the best local server on startup, call the application using `nordvpn-client --auto`.
+
 ## Future improvements
 
 I don't expect to make any changes to this application, but if there were more users, some good ideas:  

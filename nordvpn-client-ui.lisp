@@ -18,13 +18,18 @@
 (defvar *status-label* nil "Label that reflects the current status.")
 (defvar *connect-button* nil "Button to connect to the server displayed in `*recommended-label*'.")
 
+(defvar *auto-connect* nil "Whether the flag --auto was provided when starting the app.")
+
 (defvar *help-text*
   "Execute \"nordvpn-client\" to display a window that allows finding a city to
 connect to, or the best \"local\" server, and then create & open the VPN
 connection in Network Manager.
 
-For this to work, you need to setup in your keyring proper values for
-\"nordvpn-client username\" and \"nordvpn-client password\".
+If you use the flag \"--auto\", the client to try to connect on startup without
+user intervention.
+
+For this application to work, you need to setup in your keyring proper values
+for \"nordvpn-client username\" and \"nordvpn-client password\".
 
 This tool was created an an exercise to practice Common Lisp, and also as a
 convenience in Fedora Silverblue, where installing the official NordVPN rpm
@@ -36,10 +41,12 @@ Visit https://github.com/sebasmonia/nordvpn-client for more information.
 (defun init ()
   "Start the UI, or show the help text if needed."
   (let ((arguments (uiop:command-line-arguments)))
-    (when (string= "-h" (first arguments))
-        (format t *help-text*)
-        (uiop:quit 0))
-  (start-ui)))
+    (when (member "-h" arguments :test #'string=)
+      (format t *help-text*)
+      (uiop:quit 0))
+    (when (member "--auto" arguments :test #'string=)
+      (setf *auto-connect* t))
+    (start-ui)))
 
 (defun searchable-listbox-match-ignore-case (entry-text item-text)
   "Return non-nil if ENTRY-TEXT is contained in ITEM-TEXT.
@@ -113,7 +120,9 @@ Unlike the default match function in searchable-listbox, this one is case insens
       (nodgui:after 50 #'populate-cities-listbox))))
 
 (defun populate-cities-listbox ()
-  "Shows the list of countries. This function is called right after initializing the UI."
+  "Shows the list of countries. This function is called right after initializing the UI.
+Being the last step of UI initialization, this function also checks if it needs to start the
+auto-connect process."
   (flet ((format-countries-cities ()
            (loop for country in *countries-cities*
                  for name = (alexandria:assoc-value country :name)
@@ -121,7 +130,9 @@ Unlike the default match function in searchable-listbox, this one is case insens
                              collect (format nil "~a  -  ~a" name city)))))
     (setf *countries-cities* (nordvpn-api:get-countries-cities))
     (listbox-append *cities-listbox* (format-countries-cities))
-    (setf (text *status-label*) "")))
+    (setf (text *status-label*) ""))
+  (when *auto-connect*
+    (get-recommended-local-start)))
 
 (defun cities-listbox-selected-start (evt)
   "Setup the UI and then call `cities-listbox-selected-end'."
@@ -160,7 +171,8 @@ Unlike the default match function in searchable-listbox, this one is case insens
   (prepare-to-connect (nordvpn-api:get-best-server-current-location)))
 
 (defun prepare-to-connect (server-data)
-  "Store SERVER-DATA in `*recommended-server-data', and also display it in `*recommended-label*'."
+  "Store SERVER-DATA in `*recommended-server-data', and also display it in `*recommended-label*'.
+If the auto-connect flag was set on start up, then try to connect."
   (setf *recommended-server-data* server-data)
   (setf (text *recommended-label*) (format nil *recommended-info-template*
                                            (gethash "id" server-data)
@@ -169,7 +181,10 @@ Unlike the default match function in searchable-listbox, this one is case insens
                                            (gethash "load" server-data)))
   (setf (text *status-label*) "")
   (configure *connect-button* :state :active)
-  (focus *connect-button*))
+  (focus *connect-button*)
+  (when *auto-connect*
+    (setf *auto-connect* nil)
+    (create-and-open-connection)))
 
 (defun cities-listbox-entry-enter-key (evt)
   "Event handler for pressing Enter focused on the search box.
